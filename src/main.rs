@@ -65,8 +65,9 @@ fn check_file_permissions(path: &str, check_write: bool) -> Result<(), Box<dyn s
 }
 
 fn generate_key_pair(bits: usize) -> Result<(), Box<dyn std::error::Error>> {
-    if bits < 10000 {
-        return Err("Key size must be at least 10000 bits for adequate security.".into());
+    let allowed_sizes = vec![2048, 3072, 4096, 8192, 16384, 30000];
+    if !allowed_sizes.contains(&bits) {
+        return Err(format!("Invalid key size. Allowed sizes are: {:?}", allowed_sizes).into());
     }
 
     let mut rng = ChaCha20Rng::from_entropy();
@@ -115,13 +116,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .subcommand(Command::new("generate")
             .about("Generates a new RSA key pair")
             .arg(Arg::new("bits")
-                .help("Key size in bits (minimum 10000)")
-                .required(true)
+                .help("Key size in bits (allowed values: 2048, 3072, 4096, 8192, 16384, 30000)")
+                .default_value("16384")
+                .required(false)
                 .index(1)))
         .after_help("Usage:\n\
             - Encrypt:  cipher_file encrypt file.txt public_key.pem\n\
             - Decrypt:  cipher_file decrypt file.txt private_key.pem\n\
-            - Generate: cipher_file generate 10000");
+            - Generate: cipher_file generate [key_size]\n\
+            Key sizes: 2048, 3072, 4096, 8192, 16384 (default), 30000");
 
     let matches = app.clone().get_matches();
 
@@ -155,7 +158,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             decrypt(&priv_key, file_path)?;
         }
         Some(("generate", sub_matches)) => {
-            let bits = sub_matches.get_one::<String>("bits").unwrap().parse::<usize>()?;
+            let bits = sub_matches.get_one::<String>("bits")
+                .unwrap_or(&String::from("16384"))
+                .parse::<usize>()?;
             generate_key_pair(bits)?;
         }
         _ => {
