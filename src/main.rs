@@ -151,7 +151,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .about("Generates a new RSA key pair")
             .arg(Arg::new("bits")
                 .help("Key size in bits (allowed values: 2048, 3072, 4096, 16384)")
-                .default_value("16384")
+                .default_value("4096")
                 .required(false)
                 .index(1)))
         .after_help("Usage:\n\
