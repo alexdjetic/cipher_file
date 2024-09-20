@@ -7,19 +7,40 @@ use std::path::Path;
 use clap::{Command, Arg};
 use sha2::Sha256;
 use rand_chacha::ChaCha20Rng;
-use rand_core::{SeedableRng, CryptoRng};
+use rand_core::SeedableRng;
+use aes_gcm::{
+    aead::{Aead, KeyInit},
+    Aes256Gcm, Key, Nonce
+};
+use rand::Rng;
 
 fn encrypt(pub_key: &RsaPublicKey, file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Read input file
     let input_data = fs::read(file_path)?;
 
-    // Encrypt data
+    // Generate a random AES key
     let mut rng = ChaCha20Rng::from_entropy();
+    let aes_key: [u8; 32] = rng.gen();
+    let aes_nonce: [u8; 12] = rng.gen();
+
+    // Encrypt data with AES
+    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&aes_key));
+    let encrypted_data = cipher.encrypt(Nonce::from_slice(&aes_nonce), input_data.as_ref())
+        .map_err(|e| format!("Encryption failed: {}", e))?;
+
+    // Encrypt AES key with RSA
     let padding = Oaep::new::<Sha256>();
-    let encrypted_data = pub_key.encrypt(&mut rng, padding, &input_data)?;
+    let encrypted_key = pub_key.encrypt(&mut rng, padding, &aes_key)?;
+
+    // Combine encrypted key, nonce, and data
+    let mut final_data = Vec::new();
+    final_data.extend_from_slice(&(encrypted_key.len() as u32).to_be_bytes());
+    final_data.extend_from_slice(&encrypted_key);
+    final_data.extend_from_slice(&aes_nonce);
+    final_data.extend_from_slice(&encrypted_data);
 
     // Write encrypted data back to the same file
-    fs::write(file_path, &encrypted_data)?;
+    fs::write(file_path, &final_data)?;
 
     println!("File encrypted successfully!");
     Ok(())
@@ -29,10 +50,23 @@ fn decrypt(priv_key: &RsaPrivateKey, file_path: &str) -> Result<(), Box<dyn std:
     // Read encrypted file
     let encrypted_data = fs::read(file_path)?;
 
-    // Decrypt data
+    // Extract encrypted key length
+    let key_len = u32::from_be_bytes(encrypted_data[0..4].try_into()?) as usize;
+
+    // Extract and decrypt the AES key
+    let encrypted_key = &encrypted_data[4..4+key_len];
     let padding = Oaep::new::<Sha256>();
-    let decrypted_data = priv_key.decrypt(padding, &encrypted_data)
-        .map_err(|e| format!("Decryption failed: {}. This could be due to an invalid private key or corrupted input data.", e))?;
+    let aes_key = priv_key.decrypt(padding, encrypted_key)
+        .map_err(|e| format!("Decryption of AES key failed: {}. This could be due to an invalid private key or corrupted input data.", e))?;
+
+    // Extract nonce and encrypted content
+    let aes_nonce = &encrypted_data[4+key_len..4+key_len+12];
+    let encrypted_content = &encrypted_data[4+key_len+12..];
+
+    // Decrypt data with AES
+    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&aes_key));
+    let decrypted_data = cipher.decrypt(Nonce::from_slice(aes_nonce), encrypted_content.as_ref())
+        .map_err(|e| format!("Decryption failed: {}", e))?;
 
     // Write decrypted data back to the same file
     fs::write(file_path, &decrypted_data)?;
@@ -117,14 +151,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .about("Generates a new RSA key pair")
             .arg(Arg::new("bits")
                 .help("Key size in bits (allowed values: 2048, 3072, 4096, 16384)")
-                .default_value("4096")
+                .default_value("16384")
                 .required(false)
                 .index(1)))
         .after_help("Usage:\n\
             - Encrypt:  cipher_file encrypt file.txt public_key.pem\n\
             - Decrypt:  cipher_file decrypt file.txt private_key.pem\n\
             - Generate: cipher_file generate [key_size]\n\
-            Key sizes: 2048, 3072, 4096, 8192, 16384 (default), 30000");
+            Key sizes: 2048, 3072, 4096, 16384 (default)");
 
     let matches = app.clone().get_matches();
 
