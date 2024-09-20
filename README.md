@@ -42,6 +42,22 @@ This will generate two files in the current directory:
 - `private_key.pem`: The private key (keep this secure!)
 - `public_key.pem`: The public key (can be shared)
 
+### Key Sizes
+
+The following table shows the allowed key sizes, sorted by security level, with commentary and examples:
+
+| Key Size | Security Level | Commentary | Example Usage |
+|----------|----------------|------------|---------------|
+| 2048 bits | Minimal | Suitable for short-term protection. Not recommended for new applications. | `./cipher_file generate 2048` |
+| 3072 bits | Medium | Provides adequate security for most current applications. | `./cipher_file generate 3072` |
+| 4096 bits | High (Default) | Recommended for long-term protection. Balances security and performance. | `./cipher_file generate` or `./cipher_file generate 4096` |
+| 16384 bits | Very High | Extremely secure but may impact performance. Use for highly sensitive data. | `./cipher_file generate 16384` |
+
+Notes:
+- The default key size is 4096 bits if not specified.
+- Larger key sizes provide more security but may increase encryption/decryption time and resource usage.
+- Choose the key size based on your security requirements and performance considerations.
+
 ### Encrypting a File
 
 ```bash
