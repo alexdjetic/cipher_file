@@ -35,8 +35,10 @@ The executable will be created in the `target/release` directory.
 ### Generating a Key Pair
 
 ```bash
-./target/release/cipher_file generate 10000
+./target/release/cipher_file generate X
 ```
+
+> see the Key Sizes section for more information on the allowed key sizes.
 
 This will generate two files in the current directory:
 - `private_key.pem`: The private key (keep this secure!)
