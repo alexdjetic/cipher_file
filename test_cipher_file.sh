@@ -21,15 +21,23 @@ if [ ! -f "private_key.pem" ] || [ ! -f "public_key.pem" ]; then
 fi
 
 # Create a test message
-echo "This is a secret message" > test_message.txt
-original_content=$(cat test_message.txt)
+echo "Creating test message..."
+./create_big_file.sh
+
+# Check if test message was created
+if [ ! -f "test_message.txt" ]; then
+    echo "Error: Test message file was not created"
+    exit 1
+fi
+
+original_content=$(md5sum test_message.txt | awk '{ print $1 }')
 
 # Encrypt the file
 echo "Encrypting file..."
 run_cipher_file encrypt test_message.txt public_key.pem
 
 # Check if the file content has changed (it should be encrypted now)
-if [ "$original_content" = "$(cat test_message.txt)" ]; then
+if [ "$original_content" = "$(md5sum test_message.txt | awk '{ print $1 }')" ]; then
     echo "Error: File was not encrypted"
     exit 1
 fi
@@ -39,7 +47,7 @@ echo "Decrypting file..."
 run_cipher_file decrypt test_message.txt private_key.pem
 
 # Check if the file has been correctly decrypted
-decrypted_content=$(cat test_message.txt)
+decrypted_content=$(md5sum test_message.txt | awk '{ print $1 }')
 if [ "$original_content" != "$decrypted_content" ]; then
     echo "Error: File was not correctly decrypted"
     exit 1

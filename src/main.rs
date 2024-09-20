@@ -124,7 +124,7 @@ fn generate_key_pair(bits: usize) -> Result<(), Box<dyn std::error::Error>> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = Command::new("RSA File Encryptor/Decryptor")
-        .version("1.0")
+        .version("1.1")
         .author("Djetic Alexandre")
         .about("Encrypts or decrypts files using RSA")
         .subcommand(Command::new("encrypt")
