@@ -65,7 +65,7 @@ fn check_file_permissions(path: &str, check_write: bool) -> Result<(), Box<dyn s
 }
 
 fn generate_key_pair(bits: usize) -> Result<(), Box<dyn std::error::Error>> {
-    let allowed_sizes = vec![2048, 3072, 4096, 8192, 16384, 30000];
+    let allowed_sizes = vec![2048, 3072, 4096, 16384];
     if !allowed_sizes.contains(&bits) {
         return Err(format!("Invalid key size. Allowed sizes are: {:?}", allowed_sizes).into());
     }
@@ -116,8 +116,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .subcommand(Command::new("generate")
             .about("Generates a new RSA key pair")
             .arg(Arg::new("bits")
-                .help("Key size in bits (allowed values: 2048, 3072, 4096, 8192, 16384, 30000)")
-                .default_value("16384")
+                .help("Key size in bits (allowed values: 2048, 3072, 4096, 16384)")
+                .default_value("4096")
                 .required(false)
                 .index(1)))
         .after_help("Usage:\n\

@@ -12,7 +12,7 @@ run_cipher_file() {
 
 # Generate key pair
 echo "Generating key pair..."
-run_cipher_file generate 10000
+run_cipher_file generate
 
 # Check if key files were created
 if [ ! -f "private_key.pem" ] || [ ! -f "public_key.pem" ]; then
